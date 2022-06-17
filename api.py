@@ -54,14 +54,37 @@ class StudentSchema(Schema):
     email = fields.Str()
     age = fields.Integer()
     cellphone = fields.Str()
+    
+class ApiDoc:
+    method = ""
+    endpoint = ""
+    description = ""
+    responseCode = 200
 
-@app.route('/', methods = ['GET'])
-def home():
-    return '<p>Hello from students API!</p>', 200
+    def __init__(self, method, endpoint, description):
+        self.method = method
+        self.endpoint = endpoint
+        self.description = description
 
-@app.route('/api', methods = ['GET'])
+    def getAllEndpointsDoc():
+        return [ApiDoc("GET", "/api", "Api documentation").toJSON(),
+                ApiDoc("GET", "/api/students", "Retrieve all students").toJSON(),
+                ApiDoc("GET", "/api/students/{id}", "Retrieve student by id").toJSON(),
+                ApiDoc("POST", "/api/students/create", "Create new student").toJSON(),
+                ApiDoc("PATCH", "/api/students/modify/{id}", "Modify student name by student id").toJSON(),
+                ApiDoc("PUT", "/api/students/change/{id}", "Modify all student fields").toJSON(),
+                ApiDoc("DELETE", "/api/deleteStudent/{id}", "Delete student by id").toJSON()]
+
+    def toJSON(self):
+        return '{"method": ' + str(self.method) + \
+            ', "endpoint": ' + str(self.endpoint) + \
+            ', "responseCode": ' + str(self.responseCode) + \
+            ', "description": ' + str(self.description) + '}'
+    
+
+@app.route('/api', methods=['GET'])
 def api_main():
-    return jsonify('Hello, World!'), 200
+    return jsonify(ApiDoc.getAllEndpointsDoc()), 200
 
 @app.route('/api/students', methods=['GET'])
 def get_all_students():
@@ -70,18 +93,18 @@ def get_all_students():
     response = student_list.dump(students)
     return jsonify(response), 200
 
-@app.route('/api/students/get/<int:id>', methods = ['GET'])
+@app.route('/api/students/<int:id>', methods=['GET'])
 def get_student(id):
     student_info = Student.get_by_id(id)
     serializer = StudentSchema()
     response = serializer.dump(student_info)
     return jsonify(response), 200
 
-@app.route('/api/students/add', methods = ['POST'])
+@app.route('/api/students/create', methods=['POST'])
 def add_student():
     json_data = request.get_json()
     new_student = Student(
-        name= json_data.get('name'),
+        name=json_data.get('name'),
         email=json_data.get('email'),
         age=json_data.get('age'),
         cellphone=json_data.get('cellphone')
@@ -89,10 +112,48 @@ def add_student():
     new_student.save()
     serializer = StudentSchema()
     data = serializer.dump(new_student)
-    return jsonify(data), 201
+    return jsonify(data), 200
+
+@app.route('/api/students/modify/<int:id>', methods=['PATCH'])
+def modify_student(id):
+    student = Student.get_by_id(id)
+
+    request_params = request.args
+    if "name" in request_params:
+        student.name = request_params["name"]
+
+    student.save()
+    serializer = StudentSchema()
+    data = serializer.dump(student)
+    return jsonify(data), 200
+
+@app.route('/api/deleteStudent/<int:id>', methods=['DELETE'])
+def delete_student(id):
+    student = Student.get_by_id(id)
+    student.delete()
+    return "OK", 200
+
+@app.route('/api/students/change/<int:id>', methods=['PUT'])
+def change_student(id):
+    student = Student.get_by_id(id)
+    json_data = request.get_json()
+
+    student.name=json_data.get('name'),
+    student.email=json_data.get('email'),
+    student.age=json_data.get('age'),
+    student.cellphone=json_data.get('cellphone')
+
+    student.save()
+    
+    serializer = StudentSchema()
+    data = serializer.dump(student)
+    return jsonify(data), 200
+
 
 if __name__ == '__main__':
     if not database_exists(engine.url):
         create_database(engine.url)
     db.create_all()
     app.run(debug=True)
+
+
