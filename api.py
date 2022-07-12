@@ -53,11 +53,7 @@ class StudentSchema(Schema):
     name = fields.Str()
     email = fields.Str()
     age = fields.Integer()
-    cellphone = fields.Str()
-
-@app.route('/', methods = ['GET'])
-def home():
-    return '<p>Hello from students API!!!</p>', 200   
+    cellphone = fields.Str()  
     
 class ApiDoc:
     method = ""
@@ -163,7 +159,17 @@ def change_student(id):
     
     serializer = StudentSchema()
     data = serializer.dump(student)
-    return jsonify(data), 200
+    return '<p>Item changed!</p>', 200
+
+
+@app.route('/api/health-check/ok', methods = ['GET'])
+def health_check():
+    return '<p>Service is helthy!</p>', 200  
+      
+
+@app.route('/api/health-check/bad', methods = ['GET'])
+def sevice_no_helthy():
+    return '<p>Service is  not helthy!</p>', 500     
 
 
 if __name__ == '__main__':
@@ -171,5 +177,3 @@ if __name__ == '__main__':
         create_database(engine.url)
     db.create_all()
     app.run(debug=True)
-
-
